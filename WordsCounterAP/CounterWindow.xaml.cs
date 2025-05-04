@@ -1,18 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Threading;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 
@@ -45,11 +34,6 @@ namespace WordsCounterAP
             CounterViewModel.WordCounts.Clear();
             SearchBox.Clear();
 
-            
-            
-
-
-            CounterViewModel.CancellationTokenSource = new CancellationTokenSource();
             Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
@@ -57,13 +41,13 @@ namespace WordsCounterAP
                 if (IndeterminateProgressChckBox.IsChecked == true)
                 {
                     CounterProgress.IsIndeterminate = true;
-                    result = await Task.Run(() => CounterViewModel._textParser.ProcessTextLines(CounterViewModel.CancellationTokenSource.Token));
+                    result = await Task.Run(() => CounterViewModel.CountWords());
                 }
                 else
                 {
                     CounterProgress.IsIndeterminate = false;
                     Progress<double> progress = new Progress<double>(value => { CounterProgress.Value = value * 100; });
-                    result = await Task.Run(() => CounterViewModel._textParser.ProcessTextLines(CounterViewModel.CancellationTokenSource.Token, progress));
+                    result = await Task.Run(() => CounterViewModel.CountWords(progress));
                 }
                 CounterViewModel._wordCountsDict = result;
             }
@@ -91,8 +75,7 @@ namespace WordsCounterAP
                 
                 CounterProgress.Visibility = Visibility.Hidden;
                 CounterProgress.Value = 0;
-                CancelBtn.IsEnabled = false;
-                
+                CancelBtn.IsEnabled = false;            
             }
         }
 

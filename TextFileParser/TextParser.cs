@@ -31,7 +31,7 @@ namespace TextFileParser
         }
 
         /// <summary>
-        /// Counts words in text looping lines from File.ReadLines(string path) without cancellation, default split by space, ignore case
+        /// Counts words in textfile looping lines from File.ReadLines(string path) without cancellation, default: split by space, ignore case
         /// </summary>
         /// <returns></returns>
         public ConcurrentDictionary<string, int> ProcessTextLines()
@@ -88,6 +88,12 @@ namespace TextFileParser
             return wordCounts;
         }
 
+        /// <summary>
+        /// Counts words in text looping lines from File.ReadLines(string path) with cancellation option and progress bar value update, default split by space, ignore case
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <param name="progress"></param>
+        /// <returns></returns>
         public ConcurrentDictionary<string, int> ProcessTextLines(CancellationToken cancellationToken, IProgress<double> progress)
         {
             var allLines = File.ReadLines(TextFileAnalyzer.FilePath).ToList();

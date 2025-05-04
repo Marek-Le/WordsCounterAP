@@ -20,6 +20,11 @@ namespace TextFileParser
 
         private TextFileAnalyzer() { }
 
+        /// <summary>
+        /// Initialize and check entire file content
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
         internal static TextFileAnalyzer Initialize(string filePath)
         {
             FileInfo fileInfo = new FileInfo(filePath);
@@ -37,6 +42,12 @@ namespace TextFileParser
             };
         }
 
+        /// <summary>
+        /// Inititalize and check portion of file content
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="bufferSize"></param>
+        /// <returns></returns>
         internal static TextFileAnalyzer Initialize(string filePath, int bufferSize)
         {
             FileInfo fileInfo = new FileInfo(filePath);

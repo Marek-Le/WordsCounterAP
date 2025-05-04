@@ -4,10 +4,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using TextFileParser;
 
 namespace WordsCounterAP
@@ -30,13 +28,11 @@ namespace WordsCounterAP
             }
         }
 
-        public BackgroundWorker Worker { get; set; }
-
-        public CancellationTokenSource CancellationTokenSource { get; set; }
+        public CancellationTokenSource CancellationTokenSource { get; private set; }
 
         public ConcurrentDictionary<string, int> _wordCountsDict;
 
-        public TextParser _textParser;
+        private TextParser _textParser;
 
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string propertyName)
@@ -47,6 +43,18 @@ namespace WordsCounterAP
         public CounterViewModel()
         {
             WordCounts = new ObservableCollection<WordCount>();
+        }
+
+        public ConcurrentDictionary<string, int> CountWords(Progress<double> progress)
+        {
+            CancellationTokenSource = new CancellationTokenSource();
+            return _textParser.ProcessTextLines(CancellationTokenSource.Token, progress);
+        }
+
+        public ConcurrentDictionary<string, int> CountWords()
+        {
+            CancellationTokenSource = new CancellationTokenSource();
+            return _textParser.ProcessTextLines(CancellationTokenSource.Token);
         }
 
         public void UpdateDataGrid()
@@ -63,7 +71,7 @@ namespace WordsCounterAP
         {
             bool result = false;
             WordCounts.Clear();
-            int bufferSize = 1024; // checking only portion of file content
+            int bufferSize = 1024;
 
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
@@ -85,7 +93,7 @@ namespace WordsCounterAP
             return result;
         }
 
-        public void WriteToLog(List<string> infoLines, bool clearLog)
+        private void WriteToLog(List<string> infoLines, bool clearLog)
         {
             if (clearLog) LogText = "";
             foreach (string line in infoLines)

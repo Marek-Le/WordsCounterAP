@@ -28,6 +28,8 @@ namespace WordsCounterAP
             }
         }
 
+        public bool IsFileBlob { get; set; } = false;
+
         public CancellationTokenSource CancellationTokenSource { get; private set; }
 
         public ConcurrentDictionary<string, int> _wordCountsDict;
@@ -48,13 +50,27 @@ namespace WordsCounterAP
         public ConcurrentDictionary<string, int> CountWords(Progress<double> progress)
         {
             CancellationTokenSource = new CancellationTokenSource();
-            return _textParser.ProcessTextLines(CancellationTokenSource.Token, progress);
+            if (IsFileBlob)
+            {
+                return _textParser.ProcessBlobFile(CancellationTokenSource.Token, progress);
+            }
+            else
+            {
+                return _textParser.ProcessTextLines(CancellationTokenSource.Token, progress);
+            }           
         }
 
         public ConcurrentDictionary<string, int> CountWords()
         {
             CancellationTokenSource = new CancellationTokenSource();
-            return _textParser.ProcessTextLines(CancellationTokenSource.Token);
+            if(IsFileBlob)
+            {
+                return _textParser.ProcessBlobFile(CancellationTokenSource.Token);
+            }
+            else
+            {
+                return _textParser.ProcessTextLines(CancellationTokenSource.Token);
+            }
         }
 
         public void UpdateDataGrid()
@@ -87,6 +103,15 @@ namespace WordsCounterAP
                 _textParser = TextParser.Initialize(filePath, bufferSize);
                 List<string> infoLines = _textParser.TextFileAnalyzer.GetFileReport();
                 WriteToLog(infoLines, true);
+                if (_textParser.TextFileAnalyzer.IsBlobFile())
+                {
+                    LogText += "Detected Blob file, switching calculation method." + Environment.NewLine;
+                    IsFileBlob = true;
+                }
+                else
+                {
+                    IsFileBlob = false;
+                }
                 result = true;
             }
 

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -129,6 +127,135 @@ namespace TextFileParser
             {
                 
             }
+            return wordCounts;
+        }
+
+        public ConcurrentDictionary<string, int> ProcessBlobFile(CancellationToken cancellationToken)
+        {
+            ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            const int bufferSize = 1024 * 1024;
+            long fileSize = new FileInfo(TextFileAnalyzer.FilePath).Length;
+
+            var reader = new StreamReader(TextFileAnalyzer.FilePath, Encoding.Default, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+
+            char[] buffer = new char[bufferSize];
+            string leftover = "";
+
+            while (!reader.EndOfStream)
+            {
+
+                int readCount = reader.Read(buffer, 0, bufferSize);
+
+                string chunk = leftover + new string(buffer, 0, readCount);
+
+                int lastSplit = chunk.LastIndexOfAny(new[] { ' ', '\n', '\r', '\t' });
+                if (lastSplit == -1)
+                {
+                    leftover += chunk;
+                    continue;
+                }
+
+                string processPart = chunk.Substring(0, lastSplit + 1);
+                leftover = chunk.Substring(lastSplit + 1);
+
+                string[] words = processPart.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                ParallelOptions options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Environment.ProcessorCount,
+                    CancellationToken = cancellationToken
+                };
+                try
+                {
+                    Parallel.ForEach(words, options, word =>
+                    {
+                        wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                    });
+                }
+                catch (Exception)
+                {
+
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(leftover))
+            {
+                string[] words = leftover.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                Parallel.ForEach(words, word =>
+                {
+                    wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                });
+            }
+
+            return wordCounts;
+        }
+
+        public ConcurrentDictionary<string, int> ProcessBlobFile(CancellationToken cancellationToken, IProgress<double> progress)
+        {
+            ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            const int bufferSize = 1024 * 1024;
+            long fileSize = new FileInfo(TextFileAnalyzer.FilePath).Length;
+            long totalRead = 0;
+
+            var reader = new StreamReader(TextFileAnalyzer.FilePath, Encoding.Default, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+
+            char[] buffer = new char[bufferSize];
+            string leftover = "";
+
+            while (!reader.EndOfStream)
+            {
+                //cancellationToken.ThrowIfCancellationRequested();
+
+                int readCount = reader.Read(buffer, 0, bufferSize);
+                totalRead += readCount;
+
+                string chunk = leftover + new string(buffer, 0, readCount);
+
+                int lastSplit = chunk.LastIndexOfAny(new[] { ' ', '\n', '\r', '\t' });
+                if (lastSplit == -1)
+                {
+                    leftover += chunk;
+                    continue;
+                }
+
+                string processPart = chunk.Substring(0, lastSplit + 1);
+                leftover = chunk.Substring(lastSplit + 1);
+
+                string[] words = processPart.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                ParallelOptions options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Environment.ProcessorCount,
+                    CancellationToken = cancellationToken
+                };
+                try
+                {
+                    Parallel.ForEach(words, options, word =>
+                    {
+                        wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                    });
+                }
+                catch (Exception)
+                {
+
+                }
+
+                if (totalRead % (5 * 1024 * 1024) < bufferSize || reader.EndOfStream)
+                {
+                    progress?.Report((double)totalRead / fileSize);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(leftover))
+            {
+                string[] words = leftover.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                Parallel.ForEach(words, word =>
+                {
+                    wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                });
+                progress?.Report(1.0);
+            }
+
             return wordCounts;
         }
 

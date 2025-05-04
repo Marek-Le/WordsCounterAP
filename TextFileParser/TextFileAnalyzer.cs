@@ -38,7 +38,7 @@ namespace TextFileParser
                 ContainsSpaces = content.Contains(' '),
                 ContainsNewLines = content.Contains('\n') || content.Contains('\r'),
                 ContainsNonAnsiCharacters = content.Any(c => c > 255),
-                ContainsPunctuationChars = content.Any(char.IsPunctuation)
+                ContainsPunctuationChars = content.Any(char.IsPunctuation),
             };
         }
 
@@ -81,6 +81,17 @@ namespace TextFileParser
             if (ContainsPunctuationChars) fileReport.Add("Warnung: Der Text enthält Satzzeichen!");
 
             return fileReport;
+        }
+
+        public bool IsBlobFile()
+        {
+            long fileSizeBytes = new FileInfo(FilePath).Length;
+            int lineCount = File.ReadLines(FilePath).Count();
+
+            double avgLineLength = fileSizeBytes / (double)Math.Max(1, lineCount);
+
+            bool isBlob = lineCount < 5 || avgLineLength > 10000;
+            return isBlob;
         }
     }
 }

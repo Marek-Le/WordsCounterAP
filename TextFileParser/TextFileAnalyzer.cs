@@ -83,6 +83,10 @@ namespace TextFileParser
             return fileReport;
         }
 
+        /// <summary>
+        /// Checks if file contains text without new lines
+        /// </summary>
+        /// <returns></returns>
         public bool IsBlobFile()
         {
             long fileSizeBytes = new FileInfo(FilePath).Length;

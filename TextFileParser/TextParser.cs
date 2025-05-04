@@ -130,6 +130,11 @@ namespace TextFileParser
             return wordCounts;
         }
 
+        /// <summary>
+        /// Process file content by chunks of characters with cancellation option
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public ConcurrentDictionary<string, int> ProcessBlobFile(CancellationToken cancellationToken)
         {
             ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -189,7 +194,13 @@ namespace TextFileParser
 
             return wordCounts;
         }
-
+         
+        /// <summary>
+        /// Process file content by chunks of characters with cancellation option and progress reporting
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <param name="progress"></param>
+        /// <returns></returns>
         public ConcurrentDictionary<string, int> ProcessBlobFile(CancellationToken cancellationToken, IProgress<double> progress)
         {
             ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);

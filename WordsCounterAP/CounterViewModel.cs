@@ -1,23 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using Microsoft.Win32;
-using TextFileParser;
-using System.Collections.ObjectModel;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Concurrent;
-using System.Threading;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading;
+using TextFileParser;
 
 namespace WordsCounterAP
 {
     public class CounterViewModel : INotifyPropertyChanged
     {
         public ObservableCollection<WordCount> WordCounts { get; set; }
-
-        public TextParser TextParser { get; set; }
-
-        public string FilePath { get; set; }
 
         private string _logText;
         public string LogText
@@ -33,14 +29,15 @@ namespace WordsCounterAP
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
         public BackgroundWorker Worker { get; set; }
 
         public CancellationTokenSource CancellationTokenSource { get; private set; }
 
         private ConcurrentDictionary<string, int> _wordCountsDict;
 
+        private TextParser _textParser;
+
+        public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -57,14 +54,28 @@ namespace WordsCounterAP
             try
             {
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                _wordCountsDict = TextParser.ProcessTextLines(CancellationTokenSource.Token);
+
+                char[] punctuationAndWhitespace = Enumerable.Range(0, 65536)
+                .Select(i => (char)i)
+                .Where(c => char.IsPunctuation(c) || char.IsWhiteSpace(c))
+                .ToArray();
+
+                _wordCountsDict = _textParser.ProcessTextLines(CancellationTokenSource.Token, punctuationAndWhitespace);
                 stopwatch.Stop();
                 LogText += $"Time elapsed: {stopwatch.Elapsed.TotalSeconds:F2} seconds" + Environment.NewLine;
+                //_textParser.ProcessTextLines()
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                LogText += "Counting was cancelled." + Environment.NewLine;
-                _wordCountsDict = null;
+                if(CancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    LogText += "Counting was cancelled." + Environment.NewLine;
+                    _wordCountsDict = null;
+                }
+                else
+                {
+                    LogText += ex.ToString() + Environment.NewLine;
+                }
             }
         }
 
@@ -95,10 +106,9 @@ namespace WordsCounterAP
             if (openFileDialog.ShowDialog() == true)
             {
                 string filePath = openFileDialog.FileName;
-                TextParser = TextParser.Initialize(filePath, bufferSize);
-                List<string> infoLines = TextParser.TextFileAnalyzer.GetFileReport();
+                _textParser = TextParser.Initialize(filePath, bufferSize);
+                List<string> infoLines = _textParser.TextFileAnalyzer.GetFileReport();
                 WriteToLog(infoLines, true);
-                FilePath = TextParser.TextFileAnalyzer.FileName;
                 result = true;
             }
 

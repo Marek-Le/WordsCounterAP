@@ -16,16 +16,16 @@
         </Grid.ColumnDefinitions>
         <Border Grid.RowSpan="2" BorderBrush="DarkGray" BorderThickness="1" Grid.ColumnSpan="2"></Border>
         <ProgressBar x:Name="CounterProgress" Margin="5" Grid.Column="1" VerticalAlignment="Bottom" Height="15" Visibility="Collapsed" IsIndeterminate="True"></ProgressBar>
-        <DataGrid x:Name="MainDataGrid" ItemsSource="{Binding WordCounts}" Margin="5" AutoGenerateColumns="False" CanUserAddRows="False">
+        <DataGrid x:Name="MainDataGrid" ItemsSource="{Binding WordCounts}" Margin="5,30,5,5" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Words" Binding="{Binding Word}" Width="2*"></DataGridTextColumn>
                 <DataGridTextColumn Header="Counter" Binding="{Binding Count}" Width="*"></DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
+        <TextBox x:Name="SearchBox" VerticalAlignment="Top" Margin="5" TextChanged="SearchBox_TextChanged"></TextBox>
         <Button Grid.Column="1" Margin="5" Content="Load File" VerticalAlignment="Top" Height="21" Click="LoadFile_BtnClick"></Button>
         <Button x:Name="CountWordsBtn" Grid.Column="1" Margin="5,30" Content="Count Words" VerticalAlignment="Top" Height="21" Click="CountWords_BtnClick" IsEnabled="False"></Button>
         <Button x:Name="CancelBtn" Grid.Column="1" Margin="5,55,5,5" Content="Cancel" VerticalAlignment="Top" Height="21" Click="CancelBtn_Click" IsEnabled="False"></Button>
-
         <TextBox x:Name="LogInfo" Text="{Binding LogText}" IsReadOnly="True" Grid.Column="1" Margin="5,90,5,25" BorderThickness="0" TextChanged="TextBox_TextChanged"></TextBox>
     </Grid>
 </Window>

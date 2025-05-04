@@ -72,5 +72,18 @@ namespace WordsCounterAP
         {
             LogInfo.ScrollToEnd();
         }
+
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if(SearchBox.Text == String.Empty)
+            {
+                MainDataGrid.Items.Filter = null;
+            }
+            else
+            {
+                Predicate<object> filter = new Predicate<object>(item => (item as WordCount).Word.ToUpper().Contains(SearchBox.Text.ToUpper()));
+                MainDataGrid.Items.Filter = filter;
+            }
+        }
     }
 }

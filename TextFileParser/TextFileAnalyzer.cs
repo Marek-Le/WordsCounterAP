@@ -63,11 +63,11 @@ namespace TextFileParser
         public List<string> GetFileReport()
         {
             List<string> fileReport = new List<string>();
-            fileReport.Add($"Filename: {FileName}");
-            fileReport.Add($"Filesize: {FileSizeInBytes / 1024} KBytes");
-            if (ContainsNonAnsiCharacters) fileReport.Add("Warning: text contains non ANSI characters!");
-            if (!ContainsSpaces) fileReport.Add("Warning: text does not contain spaces!");
-            if (ContainsPunctuationChars) fileReport.Add("Warning: text contains punctuation characters!");
+            fileReport.Add($"Dateiname: {FileName}");
+            fileReport.Add($"Dateigröße: {FileSizeInBytes / 1024} KByte");
+            if (ContainsNonAnsiCharacters) fileReport.Add("Warnung: Der Text enthält Nicht-ANSI-Zeichen!");
+            if (!ContainsSpaces) fileReport.Add("Warnung: Der Text enthält keine Leerzeichen!");
+            if (ContainsPunctuationChars) fileReport.Add("Warnung: Der Text enthält Satzzeichen!");
 
             return fileReport;
         }

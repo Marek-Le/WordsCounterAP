@@ -31,7 +31,7 @@ namespace TextFileParser
         }
 
         /// <summary>
-        /// Counts words in text looping lines from File.ReadLines(string path) without cancellation, default split by space
+        /// Counts words in text looping lines from File.ReadLines(string path) without cancellation, default split by space, ignore case
         /// </summary>
         /// <returns></returns>
         public ConcurrentDictionary<string, int> ProcessTextLines()
@@ -55,33 +55,7 @@ namespace TextFileParser
         }
 
         /// <summary>
-        /// Counts words in text looping lines from File.ReadLines(string path) without cancellation
-        /// </summary>
-        /// <param name="splitChars">characters to split words, if null words are split by space</param>
-        /// <returns></returns>
-        public ConcurrentDictionary<string, int> ProcessTextLines(char[] splitChars)
-        {
-            var allLines = File.ReadLines(TextFileAnalyzer.FilePath);
-            ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            ParallelOptions options = new ParallelOptions
-            {
-                MaxDegreeOfParallelism = Environment.ProcessorCount
-            };
-
-            Parallel.ForEach(allLines, options, line =>
-            {
-                string[] words = line.Split(splitChars ?? (char[])null, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string word in words)
-                {
-                    wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
-                }
-            });
-
-            return wordCounts;
-        }
-
-        /// <summary>
-        /// Counts words in text looping lines from File.ReadLines(string path) with cancellation option, default split by space
+        /// Counts words in text looping lines from File.ReadLines(string path) with cancellation option, default split by space, ignore case
         /// </summary>
         /// <param name="cancellationToken">CancellationToken</param>
         /// <returns></returns>
@@ -95,100 +69,62 @@ namespace TextFileParser
                 CancellationToken = cancellationToken
             };
 
-            Parallel.ForEach(allLines, options, line =>
-            {               
-                string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string word in words)
-                {
-                    wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
-                }
-            });
-            return wordCounts;
-        }
-
-        public ConcurrentDictionary<string, int> ProcessTextLines(CancellationToken cancellationToken, bool isCaseSensitive)
-        {
-            var allLines = File.ReadLines(TextFileAnalyzer.FilePath);
-            var comparer = isCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-
-            ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(comparer);
-            ParallelOptions options = new ParallelOptions
+            try
             {
-                MaxDegreeOfParallelism = Environment.ProcessorCount,
-                CancellationToken = cancellationToken
-            };
-
-            Parallel.ForEach(allLines, options, line =>
-            {
-                string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string word in words)
+                Parallel.ForEach(allLines, options, line =>
                 {
-                    string processedWord = isCaseSensitive ? word : word.ToLowerInvariant();
-                    wordCounts.AddOrUpdate(processedWord, 1, (_, current) => current + 1);
-                }
-            });
+                    string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string word in words)
+                    {
+                        wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                    }
+                });
+            }
+            catch (Exception)
+            {
+
+            }
 
             return wordCounts;
         }
 
-        public ConcurrentDictionary<string, int> ProcessTextLines(CancellationToken cancellationToken, char[] splitChars)
+        public ConcurrentDictionary<string, int> ProcessTextLines(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            var allLines = File.ReadLines(TextFileAnalyzer.FilePath);
+            var allLines = File.ReadLines(TextFileAnalyzer.FilePath).ToList();
+            int totalLines = allLines.Count;
+            int processedLines = 0;
+
             ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
             ParallelOptions options = new ParallelOptions
             {
                 MaxDegreeOfParallelism = Environment.ProcessorCount,
                 CancellationToken = cancellationToken
             };
 
-            Parallel.ForEach(allLines, options, line =>
+            try
             {
-                string[] words = line.Split(splitChars ?? (char[])null, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string word in words)
+                Parallel.ForEach(allLines, options, line =>
                 {
-                    wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
-                }
-            });
+                    string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string word in words)
+                    {
+                        wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                    }
+
+                    int done = Interlocked.Increment(ref processedLines);
+                    if (done % 10000 == 0 || done == totalLines)
+                    {
+                        progress?.Report((double)done / totalLines);
+                    }
+                });
+            }
+            catch (Exception)
+            {
+                
+            }
             return wordCounts;
         }
 
-        public ConcurrentDictionary<string, int> ProcessTextLines(CancellationToken cancellationToken, bool isCaseSensitive = false, bool ignorePunctuation = true)
-        {
-            var allLines = File.ReadLines(TextFileAnalyzer.FilePath);
-            var comparer = isCaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-
-            ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(comparer);
-            ParallelOptions options = new ParallelOptions
-            {
-                MaxDegreeOfParallelism = Environment.ProcessorCount,
-                CancellationToken = cancellationToken
-            };
-
-            Parallel.ForEach(allLines, options, line =>
-            {
-                string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string word in words)
-                {
-                    string processedWord = word;
-
-                    if (ignorePunctuation)
-                    {
-                        processedWord = new string(processedWord.Where(c => !char.IsPunctuation(c)).ToArray());
-                    }
-
-                    if (!isCaseSensitive)
-                    {
-                        processedWord = processedWord.ToLowerInvariant();
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(processedWord))
-                    {
-                        wordCounts.AddOrUpdate(processedWord, 1, (_, current) => current + 1);
-                    }
-                }
-            });
-
-            return wordCounts;
-        }
     }
 }

@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using TextFileParser;
 
 namespace WordsCounterAP
@@ -31,11 +32,11 @@ namespace WordsCounterAP
 
         public BackgroundWorker Worker { get; set; }
 
-        public CancellationTokenSource CancellationTokenSource { get; private set; }
+        public CancellationTokenSource CancellationTokenSource { get; set; }
 
-        private ConcurrentDictionary<string, int> _wordCountsDict;
+        public ConcurrentDictionary<string, int> _wordCountsDict;
 
-        private TextParser _textParser;
+        public TextParser _textParser;
 
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string propertyName)
@@ -46,37 +47,6 @@ namespace WordsCounterAP
         public CounterViewModel()
         {
             WordCounts = new ObservableCollection<WordCount>();
-        }
-
-        public void CountWords()
-        {
-            CancellationTokenSource = new CancellationTokenSource();           
-            try
-            {
-                Stopwatch stopwatch = Stopwatch.StartNew();
-
-                char[] punctuationAndWhitespace = Enumerable.Range(0, 65536)
-                .Select(i => (char)i)
-                .Where(c => char.IsPunctuation(c) || char.IsWhiteSpace(c))
-                .ToArray();
-
-                _wordCountsDict = _textParser.ProcessTextLines(CancellationTokenSource.Token, punctuationAndWhitespace);
-                stopwatch.Stop();
-                LogText += $"Time elapsed: {stopwatch.Elapsed.TotalSeconds:F2} seconds" + Environment.NewLine;
-                //_textParser.ProcessTextLines()
-            }
-            catch (Exception ex)
-            {
-                if(CancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    LogText += "Counting was cancelled." + Environment.NewLine;
-                    _wordCountsDict = null;
-                }
-                else
-                {
-                    LogText += ex.ToString() + Environment.NewLine;
-                }
-            }
         }
 
         public void UpdateDataGrid()

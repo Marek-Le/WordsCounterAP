@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -41,14 +42,23 @@ namespace TextFileParser
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            Parallel.ForEach(allLines, options, line =>
+            try
             {
-                string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string word in words)
+                Parallel.ForEach(allLines, options, line =>
                 {
-                    wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
-                }
-            });
+                    string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string word in words)
+                    {
+                        wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                return null;
+            }
+
             return wordCounts;
         }
 
@@ -71,6 +81,7 @@ namespace TextFileParser
             {
                 Parallel.ForEach(allLines, options, line =>
                 {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     string[] words = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                     foreach (string word in words)
                     {
@@ -78,9 +89,10 @@ namespace TextFileParser
                     }
                 });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                Debug.WriteLine(ex);
+                return null;
             }
 
             return wordCounts;
@@ -138,7 +150,7 @@ namespace TextFileParser
         public ConcurrentDictionary<string, int> ProcessBlobFile(CancellationToken cancellationToken)
         {
             ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            const int bufferSize = 1024 * 1024;
+            const int bufferSize = 102400;
             long fileSize = new FileInfo(TextFileAnalyzer.FilePath).Length;
 
             var reader = new StreamReader(TextFileAnalyzer.FilePath, Encoding.Default, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
@@ -148,38 +160,40 @@ namespace TextFileParser
 
             while (!reader.EndOfStream)
             {
-
-                int readCount = reader.Read(buffer, 0, bufferSize);
-
-                string chunk = leftover + new string(buffer, 0, readCount);
-
-                int lastSplit = chunk.LastIndexOfAny(new[] { ' ', '\n', '\r', '\t' });
-                if (lastSplit == -1)
-                {
-                    leftover += chunk;
-                    continue;
-                }
-
-                string processPart = chunk.Substring(0, lastSplit + 1);
-                leftover = chunk.Substring(lastSplit + 1);
-
-                string[] words = processPart.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-
-                ParallelOptions options = new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = Environment.ProcessorCount,
-                    CancellationToken = cancellationToken
-                };
                 try
                 {
+                    int readCount = reader.Read(buffer, 0, bufferSize);
+
+                    string chunk = leftover + new string(buffer, 0, readCount);
+
+                    int lastSplit = chunk.LastIndexOfAny(new[] { ' ', '\n', '\r', '\t' });
+                    if (lastSplit == -1)
+                    {
+                        leftover += chunk;
+                        continue;
+                    }
+
+                    string processPart = chunk.Substring(0, lastSplit + 1);
+                    leftover = chunk.Substring(lastSplit + 1);
+
+                    string[] words = processPart.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    ParallelOptions options = new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = Environment.ProcessorCount,
+                        CancellationToken = cancellationToken
+                    };
+
                     Parallel.ForEach(words, options, word =>
                     {
+                        options.CancellationToken.ThrowIfCancellationRequested();
                         wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
                     });
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-
+                    Debug.WriteLine(ex);
+                    return null;
                 }
             }
 
@@ -204,7 +218,7 @@ namespace TextFileParser
         public ConcurrentDictionary<string, int> ProcessBlobFile(CancellationToken cancellationToken, IProgress<double> progress)
         {
             ConcurrentDictionary<string, int> wordCounts = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            const int bufferSize = 1024 * 1024;
+            const int bufferSize = 102400;
             long fileSize = new FileInfo(TextFileAnalyzer.FilePath).Length;
             long totalRead = 0;
 
@@ -215,40 +229,41 @@ namespace TextFileParser
 
             while (!reader.EndOfStream)
             {
-                //cancellationToken.ThrowIfCancellationRequested();
-
-                int readCount = reader.Read(buffer, 0, bufferSize);
-                totalRead += readCount;
-
-                string chunk = leftover + new string(buffer, 0, readCount);
-
-                int lastSplit = chunk.LastIndexOfAny(new[] { ' ', '\n', '\r', '\t' });
-                if (lastSplit == -1)
-                {
-                    leftover += chunk;
-                    continue;
-                }
-
-                string processPart = chunk.Substring(0, lastSplit + 1);
-                leftover = chunk.Substring(lastSplit + 1);
-
-                string[] words = processPart.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-
-                ParallelOptions options = new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = Environment.ProcessorCount,
-                    CancellationToken = cancellationToken
-                };
                 try
-                {
+                {                    
+                    int readCount = reader.Read(buffer, 0, bufferSize);
+                    totalRead += readCount;
+
+                    string chunk = leftover + new string(buffer, 0, readCount);
+
+                    int lastSplit = chunk.LastIndexOfAny(new[] { ' ', '\n', '\r', '\t' });
+                    if (lastSplit == -1)
+                    {
+                        leftover += chunk;
+                        continue;
+                    }
+
+                    string processPart = chunk.Substring(0, lastSplit + 1);
+                    leftover = chunk.Substring(lastSplit + 1);
+
+                    string[] words = processPart.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    ParallelOptions options = new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = Environment.ProcessorCount,
+                        CancellationToken = cancellationToken
+                    };
+
                     Parallel.ForEach(words, options, word =>
                     {
+                        options.CancellationToken.ThrowIfCancellationRequested();
                         wordCounts.AddOrUpdate(word, 1, (_, current) => current + 1);
                     });
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-
+                    Debug.WriteLine(ex);
+                    return null;
                 }
 
                 if (totalRead % (5 * 1024 * 1024) < bufferSize || reader.EndOfStream)

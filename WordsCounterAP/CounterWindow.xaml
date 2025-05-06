@@ -22,11 +22,12 @@
                 <DataGridTextColumn Header="Anzahl" Binding="{Binding Count}" Width="*"></DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-        <TextBox x:Name="SearchBox" VerticalAlignment="Top" Margin="5" TextChanged="SearchBox_TextChanged"></TextBox>
+        <Label Margin="5,0" VerticalAlignment="Top" Content="Filter:"></Label>
+        <TextBox x:Name="SearchBox" VerticalAlignment="Top" Margin="45,5,5,5" TextChanged="SearchBox_TextChanged"></TextBox>
         <Button Grid.Column="1" Margin="5" Content="Datei laden" VerticalAlignment="Top" Height="21" Click="LoadFile_BtnClick"></Button>
         <Button x:Name="CountWordsBtn" Grid.Column="1" Margin="5,30" Content="Wörter zählen" VerticalAlignment="Top" Height="21" Click="CountWords_BtnClick" IsEnabled="False"></Button>
         <Button x:Name="CancelBtn" Grid.Column="1" Margin="5,55,5,5" Content="Abbrechen" VerticalAlignment="Top" Height="21" Click="CancelBtn_Click" IsEnabled="False"></Button>
-        <CheckBox x:Name="IndeterminateProgressChckBox" Grid.Column="1" VerticalAlignment="Top" Margin="5,85,5,5" IsChecked="True" Content="Use indeterminate progress (slightly faster)"></CheckBox>
+        <CheckBox x:Name="ProgressChckBox" Grid.Column="1" VerticalAlignment="Top" Margin="5,85,5,5" IsChecked="True" Content="Use indeterminate progress"></CheckBox>
         <TextBox x:Name="LogInfo" Text="{Binding LogText}" IsReadOnly="True" Grid.Column="1" Margin="5,110,5,25" BorderThickness="0" TextChanged="TextBox_TextChanged"></TextBox>
     </Grid>
 </Window>

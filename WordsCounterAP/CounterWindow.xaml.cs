@@ -31,6 +31,7 @@ namespace WordsCounterAP
             CounterProgress.Visibility = Visibility.Visible;
             
             CancelBtn.IsEnabled = true;
+            CountWordsBtn.IsEnabled = false;
             CounterViewModel.WordCounts.Clear();
             SearchBox.Clear();
 
@@ -38,7 +39,7 @@ namespace WordsCounterAP
             try
             {
                 ConcurrentDictionary<string, int> result = null;
-                if (IndeterminateProgressChckBox.IsChecked == true)
+                if (ProgressChckBox.IsChecked == true)
                 {
                     CounterProgress.IsIndeterminate = true;
                     result = await Task.Run(() => CounterViewModel.CountWords());
@@ -49,15 +50,11 @@ namespace WordsCounterAP
                     Progress<double> progress = new Progress<double>(value => { CounterProgress.Value = value * 100; });
                     result = await Task.Run(() => CounterViewModel.CountWords(progress));
                 }
-                CounterViewModel._wordCountsDict = result;
+                CounterViewModel.WordsCountDict = result;
             }
             catch (OperationCanceledException ex)
             {
-                if(ex.CancellationToken.IsCancellationRequested)
-                {
-                    CounterViewModel.LogText += "Counting was cancelled." + Environment.NewLine;
-                    CounterViewModel._wordCountsDict = null;
-                }
+                CounterViewModel.WordsCountDict = null;              
             }
             finally
             {
@@ -70,12 +67,13 @@ namespace WordsCounterAP
                 else
                 {
                     CounterViewModel.LogText += "Counting was cancelled." + Environment.NewLine;
-                    CounterViewModel._wordCountsDict = null;
+                    CounterViewModel.WordsCountDict = null;
                 }
                 
                 CounterProgress.Visibility = Visibility.Hidden;
                 CounterProgress.Value = 0;
-                CancelBtn.IsEnabled = false;            
+                CancelBtn.IsEnabled = false;
+                CountWordsBtn.IsEnabled = true;
             }
         }
 

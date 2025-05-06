@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using TextFileParser;
@@ -32,7 +33,7 @@ namespace WordsCounterAP
 
         public CancellationTokenSource CancellationTokenSource { get; private set; }
 
-        public ConcurrentDictionary<string, int> _wordCountsDict;
+        public ConcurrentDictionary<string, int> WordsCountDict { get; set; }
 
         private TextParser _textParser;
 
@@ -75,8 +76,8 @@ namespace WordsCounterAP
 
         public void UpdateDataGrid()
         {
-            if (_wordCountsDict == null || _wordCountsDict.IsEmpty) return;
-            foreach (KeyValuePair<string, int> kvp in _wordCountsDict.OrderByDescending(kvp => kvp.Value))
+            if (WordsCountDict == null || WordsCountDict.IsEmpty) return;
+            foreach (KeyValuePair<string, int> kvp in WordsCountDict.OrderByDescending(kvp => kvp.Value))
             {
                 WordCount wordCount = new WordCount() { Word = kvp.Key, Count = kvp.Value };
                 WordCounts.Add(wordCount);
@@ -96,23 +97,30 @@ namespace WordsCounterAP
                 DefaultExt = ".txt",
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
             };
-
-            if (openFileDialog.ShowDialog() == true)
+            try
             {
-                string filePath = openFileDialog.FileName;
-                _textParser = TextParser.Initialize(filePath, bufferSize);
-                List<string> infoLines = _textParser.TextFileAnalyzer.GetFileReport();
-                WriteToLog(infoLines, true);
-                if (_textParser.TextFileAnalyzer.IsBlobFile())
+                if (openFileDialog.ShowDialog() == true)
                 {
-                    LogText += "Detected Blob file, switching calculation method." + Environment.NewLine;
-                    IsFileBlob = true;
+                    string filePath = openFileDialog.FileName;
+                    _textParser = TextParser.Initialize(filePath, bufferSize);
+                    List<string> infoLines = _textParser.TextFileAnalyzer.GetFileReport();
+                    WriteToLog(infoLines, true);
+                    if (_textParser.TextFileAnalyzer.IsBlobFile())
+                    {
+                        LogText += "Detected Blob file, switching calculation method." + Environment.NewLine;
+                        IsFileBlob = true;
+                    }
+                    else
+                    {
+                        IsFileBlob = false;
+                    }
+                    result = true;
                 }
-                else
-                {
-                    IsFileBlob = false;
-                }
-                result = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                LogText += ex.ToString();
             }
 
             return result;
